@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -10,13 +11,15 @@ using System.Threading.Tasks;
 
 namespace TeamBooking.Extesions.Logging.SqlServer
 {
-    internal class SqlServerLoggerProvider : ILoggerProvider
+    internal class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentDictionary<int, ConcurrentQueue<LogMessage>> _messageQueues = new ConcurrentDictionary<int, ConcurrentQueue<LogMessage>>();
         private readonly List<LogMessage> _currentBatch = new List<LogMessage>();
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly IOptions<SqlServerLoggerOptions> _options;
         private readonly Task _outputTask;
+
+        internal IExternalScopeProvider ScopeProvider { get; private set; }
 
         public SqlServerLoggerProvider(IOptions<SqlServerLoggerOptions> options)
         {
@@ -66,7 +69,13 @@ namespace TeamBooking.Extesions.Logging.SqlServer
                 return;
             }
 
-            var connectionString = _options.Value.GetConnectionString(systemId);
+            var connectionString = _options.Value?.GetConnectionString(systemId);
+
+            if (connectionString is null)
+            {
+                return;
+            }
+
             using var connection = new SqlConnection(connectionString);
             using var sqlBulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, externalTransaction: null)
             {
@@ -131,6 +140,11 @@ namespace TeamBooking.Extesions.Logging.SqlServer
             message.MetadataValues.CopyTo(row, 3);
 
             return row;
+        }
+
+        public void SetScopeProvider(IExternalScopeProvider scopeProvider)
+        {
+            ScopeProvider = scopeProvider;
         }
 
         public void Dispose()
