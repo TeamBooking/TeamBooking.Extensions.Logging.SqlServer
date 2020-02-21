@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace TeamBooking.Extesions.Logging.SqlServer
@@ -52,7 +53,7 @@ namespace TeamBooking.Extesions.Logging.SqlServer
             foreach (var mapping in _options.MetaMappings)
             {
                 var value = metadata.GetValueOrDefault(mapping.LogTemplateKey, mapping.DefaultValue);
-                metadataValues.Add(value);
+                metadataValues.Add(value ?? DBNull.Value);
             }
 
             var systemId = (int)metadata.GetValueOrDefault("SystemId", 0);

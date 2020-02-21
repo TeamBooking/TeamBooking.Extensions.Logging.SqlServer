@@ -1,7 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -11,7 +10,8 @@ using System.Threading.Tasks;
 
 namespace TeamBooking.Extesions.Logging.SqlServer
 {
-    internal class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
+    [ProviderAlias("SqlServer")]
+    public class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentDictionary<int, ConcurrentQueue<LogMessage>> _messageQueues = new ConcurrentDictionary<int, ConcurrentQueue<LogMessage>>();
         private readonly List<LogMessage> _currentBatch = new List<LogMessage>();
