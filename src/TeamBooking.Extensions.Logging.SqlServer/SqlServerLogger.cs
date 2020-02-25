@@ -48,12 +48,28 @@ namespace TeamBooking.Extesions.Logging.SqlServer
                 }
             }, state);
 
+            if (state is IEnumerable<KeyValuePair<string, object>> enumerable)
+            {
+                foreach (var (key, value) in enumerable)
+                {
+                    metadata[key] = value;
+                }
+            }
+
             var metadataValues = new List<object>();
 
             foreach (var mapping in _options.MetaMappings)
             {
-                var value = metadata.GetValueOrDefault(mapping.LogTemplateKey, mapping.DefaultValue);
-                metadataValues.Add(value ?? DBNull.Value);
+                object value = null;
+
+                foreach (var key in mapping.LogTemplateKeys)
+                {
+                    if (metadata.TryGetValue(key, out value))
+                    {
+                        break;
+                    }
+                }
+                metadataValues.Add(value ?? mapping.DefaultValue ?? DBNull.Value);
             }
 
             var systemId = (int)metadata.GetValueOrDefault("SystemId", 0);
