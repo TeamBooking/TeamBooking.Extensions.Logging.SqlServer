@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using TeamBooking.Extesions.Logging.SqlServer;
 
 namespace ConsoleApp
 {
@@ -13,20 +14,21 @@ namespace ConsoleApp
                     .AddConsole()
                     .AddSqlServer(options =>
                     {
-                        options.GetConnectionString = systemId => "Server=localhost;Database=Aeroe;Trusted_Connection=True;MultipleActiveResultSets=True";
+                        options.GetConnectionString = systemId => "Server=localhost;Database=Tb5;Trusted_Connection=True;MultipleActiveResultSets=True";
                         options.BatchInterval = TimeSpan.FromMilliseconds(100);
                         options.TableName = "Hist";
                         options.LoggerColumnName = "ObjeNavn";
                         options.MessageColumnName = "LogTeks";
                         options.LogLevelColumnName = "HistLevel";
-                        options.MetaMappings.Add(MetaMapping.Null("PostId"));
-                        options.MetaMappings.Add(MetaMapping.NotNull("HistFiltId", 0));
+                        options.MetaMappings.Add(new MetaMapping("PostId", null, new[] { "PostId", "PackageId" }));
+                        options.MetaMappings.Add(new MetaMapping("HistFiltId", 0));
                     }))
                 .BuildServiceProvider();
 
             var logger = services.GetRequiredService<ILogger<Program>>();
 
-            logger.LogInformation("Hello {PostId}", 123);
+            logger.LogInformation("Hello post {PostId}", 123);
+            logger.LogInformation("Hello package {PackageId}", 123);
 
             using (var scope = logger.BeginScope("User {UserId}", 1))
             {

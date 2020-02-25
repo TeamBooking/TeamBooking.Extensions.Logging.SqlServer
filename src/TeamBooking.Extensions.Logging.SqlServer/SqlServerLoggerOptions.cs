@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TeamBooking.Extesions.Logging.SqlServer
 {
@@ -18,33 +19,15 @@ namespace TeamBooking.Extesions.Logging.SqlServer
 
     public class MetaMapping
     {
-        public string LogTemplateKey { get; set; }
         public string ColumnName { get; set; }
         public object DefaultValue { get; set; }
+        public string[] LogTemplateKeys { get; set; }
 
-        private MetaMapping()
+        public MetaMapping(string columnName, object defaultValue, string[] logTemplateKeys = null)
         {
-        }
-
-        public static MetaMapping Null(string key, string columnName = null)
-        {
-            return new MetaMapping()
-            {
-                LogTemplateKey = key,
-                ColumnName = columnName ?? key
-            };
-        }
-
-        public static MetaMapping NotNull(string key, object defaultValue) => NotNull(key, key, defaultValue);
-
-        public static MetaMapping NotNull(string key, string columnName, object defaultValue)
-        {
-            return new MetaMapping()
-            {
-                LogTemplateKey = key,
-                ColumnName = columnName,
-                DefaultValue = defaultValue
-            };
+            ColumnName = columnName;
+            DefaultValue = defaultValue;
+            LogTemplateKeys = logTemplateKeys ?? new[] { columnName };
         }
     }
 }
