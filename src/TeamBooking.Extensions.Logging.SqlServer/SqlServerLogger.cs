@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace TeamBooking.Extesions.Logging.SqlServer
+namespace TeamBooking.Extensions.Logging.SqlServer
 {
     internal class SqlServerLogger : ILogger
     {

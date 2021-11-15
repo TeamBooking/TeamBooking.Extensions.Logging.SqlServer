@@ -1,9 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace TeamBooking.Extesions.Logging.SqlServer
+namespace TeamBooking.Extensions.Logging.SqlServer
 {
     public class SqlServerLoggerOptions
     {

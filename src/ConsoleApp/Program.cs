@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
-using TeamBooking.Extesions.Logging.SqlServer;
+using TeamBooking.Extensions.Logging.SqlServer;
 
 namespace ConsoleApp
 {

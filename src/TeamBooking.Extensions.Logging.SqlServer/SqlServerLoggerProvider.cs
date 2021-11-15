@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -8,7 +9,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TeamBooking.Extesions.Logging.SqlServer
+namespace TeamBooking.Extensions.Logging.SqlServer
 {
     [ProviderAlias("SqlServer")]
     public class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
@@ -70,13 +71,12 @@ namespace TeamBooking.Extesions.Logging.SqlServer
             }
 
             var connectionString = _options.Value?.GetConnectionString(systemId);
-
             if (connectionString is null)
             {
                 return;
             }
 
-            using var connection = new SqlConnection(connectionString);
+            await using var connection = new SqlConnection(connectionString);
             using var sqlBulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, externalTransaction: null)
             {
                 DestinationTableName = _options.Value.TableName
@@ -110,12 +110,14 @@ namespace TeamBooking.Extesions.Logging.SqlServer
         {
             var table = new DataTable()
             {
-                Locale = CultureInfo.InvariantCulture
+                Locale = CultureInfo.InvariantCulture,
+                Columns =
+                {
+                    new DataColumn(_options.Value.LoggerColumnName, typeof(string)),
+                    new DataColumn(_options.Value.MessageColumnName, typeof(string)),
+                    new DataColumn(_options.Value.LogLevelColumnName),
+                }
             };
-
-            table.Columns.Add(new DataColumn(_options.Value.LoggerColumnName, typeof(string)));
-            table.Columns.Add(new DataColumn(_options.Value.MessageColumnName, typeof(string)));
-            table.Columns.Add(new DataColumn(_options.Value.LogLevelColumnName));
 
             foreach (var mapping in _options.Value.MetaMappings)
             {
@@ -154,6 +156,9 @@ namespace TeamBooking.Extesions.Logging.SqlServer
             try
             {
                 _outputTask.Wait(_options.Value.BatchInterval);
+            }
+            catch (AggregateException e) when (e.InnerException is TaskCanceledException)
+            {
             }
             catch (TaskCanceledException)
             {

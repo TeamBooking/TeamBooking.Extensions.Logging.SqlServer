@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
-namespace TeamBooking.Extesions.Logging.SqlServer
+namespace TeamBooking.Extensions.Logging.SqlServer
 {
     internal readonly struct LogMessage
     {
