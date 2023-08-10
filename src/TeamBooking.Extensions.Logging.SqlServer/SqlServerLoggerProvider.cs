@@ -14,9 +14,10 @@ namespace TeamBooking.Extensions.Logging.SqlServer
     [ProviderAlias("SqlServer")]
     public class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
-        private readonly ConcurrentDictionary<int, ConcurrentQueue<LogMessage>> _messageQueues = new ConcurrentDictionary<int, ConcurrentQueue<LogMessage>>();
+        private readonly ConcurrentDictionary<int, ConcurrentQueue<LogMessage>> _messageQueues =
+            new();
         private readonly List<LogMessage> _currentBatch = new List<LogMessage>();
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly IOptions<SqlServerLoggerOptions> _options;
         private readonly Task _outputTask;
 
@@ -35,7 +36,10 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 
         internal void AddMessage(LogMessage message)
         {
-            var queue = _messageQueues.GetOrAdd(message.SystemId, _ => new ConcurrentQueue<LogMessage>());
+            var queue = _messageQueues.GetOrAdd(
+                message.SystemId,
+                _ => new ConcurrentQueue<LogMessage>()
+            );
             queue.Enqueue(message);
         }
 
@@ -52,7 +56,11 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 
                     if (_currentBatch.Count > 0)
                     {
-                        await StoreBatchAsync(systemId, _currentBatch, _cancellationTokenSource.Token);
+                        await StoreBatchAsync(
+                            systemId,
+                            _currentBatch,
+                            _cancellationTokenSource.Token
+                        );
                         _currentBatch.Clear();
                     }
                 }
@@ -61,7 +69,11 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             }
         }
 
-        private async Task StoreBatchAsync(int systemId, IEnumerable<LogMessage> batch, CancellationToken cancellationToken)
+        private async Task StoreBatchAsync(
+            int systemId,
+            IEnumerable<LogMessage> batch,
+            CancellationToken cancellationToken
+        )
         {
             var table = CreateTable(batch);
 
@@ -77,7 +89,11 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             }
 
             await using var connection = new SqlConnection(connectionString);
-            using var sqlBulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, externalTransaction: null)
+            using var sqlBulkCopy = new SqlBulkCopy(
+                connection,
+                SqlBulkCopyOptions.Default,
+                externalTransaction: null
+            )
             {
                 DestinationTableName = _options.Value.TableName
             };
@@ -157,12 +173,8 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             {
                 _outputTask.Wait(_options.Value.BatchInterval);
             }
-            catch (AggregateException e) when (e.InnerException is TaskCanceledException)
-            {
-            }
-            catch (TaskCanceledException)
-            {
-            }
+            catch (AggregateException e) when (e.InnerException is TaskCanceledException) { }
+            catch (TaskCanceledException) { }
         }
     }
 }
