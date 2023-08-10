@@ -14,9 +14,9 @@ namespace TeamBooking.Extensions.Logging.SqlServer
     [ProviderAlias("SqlServer")]
     public class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
-        private readonly ConcurrentDictionary<int, ConcurrentQueue<LogMessage>> _messageQueues =
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<LogMessage>> _messageQueues =
             new();
-        private readonly List<LogMessage> _currentBatch = new List<LogMessage>();
+        private readonly List<LogMessage> _currentBatch = new();
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly IOptions<SqlServerLoggerOptions> _options;
         private readonly Task _outputTask;
@@ -37,7 +37,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         internal void AddMessage(LogMessage message)
         {
             var queue = _messageQueues.GetOrAdd(
-                message.SystemId,
+                message.Tenant,
                 _ => new ConcurrentQueue<LogMessage>()
             );
             queue.Enqueue(message);
@@ -47,7 +47,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         {
             while (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                foreach (var (systemId, queue) in _messageQueues)
+                foreach (var (tenant, queue) in _messageQueues)
                 {
                     while (queue.TryDequeue(out var message))
                     {
@@ -57,7 +57,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                     if (_currentBatch.Count > 0)
                     {
                         await StoreBatchAsync(
-                            systemId,
+                            tenant,
                             _currentBatch,
                             _cancellationTokenSource.Token
                         );
@@ -70,7 +70,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         }
 
         private async Task StoreBatchAsync(
-            int systemId,
+            string tenant,
             IEnumerable<LogMessage> batch,
             CancellationToken cancellationToken
         )
@@ -82,7 +82,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                 return;
             }
 
-            var connectionString = _options.Value?.GetConnectionString(systemId);
+            var connectionString = _options.Value?.GetConnectionString(tenant);
             if (connectionString is null)
             {
                 return;

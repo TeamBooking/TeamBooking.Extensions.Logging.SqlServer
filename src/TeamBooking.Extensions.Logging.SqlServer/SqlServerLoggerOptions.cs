@@ -6,7 +6,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 {
     public class SqlServerLoggerOptions
     {
-        public Func<int, string> GetConnectionString { get; set; }
+        public Func<string, string> GetConnectionString { get; set; }
         public TimeSpan BatchInterval { get; set; } = TimeSpan.FromSeconds(10);
         public string TableName { get; set; }
         public string LoggerColumnName { get; set; }

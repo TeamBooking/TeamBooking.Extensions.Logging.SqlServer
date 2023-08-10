@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace TeamBooking.Extensions.Logging.SqlServer
@@ -11,7 +10,11 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         private readonly string _name;
         private readonly SqlServerLoggerOptions _options;
 
-        public SqlServerLogger(SqlServerLoggerProvider provider, string name, SqlServerLoggerOptions options)
+        public SqlServerLogger(
+            SqlServerLoggerProvider provider,
+            string name,
+            SqlServerLoggerOptions options
+        )
         {
             _provider = provider;
             _name = name;
@@ -28,7 +31,13 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             return logLevel != LogLevel.None;
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception exception,
+            Func<TState, Exception, string> formatter
+        )
         {
             if (!IsEnabled(logLevel))
             {
@@ -37,16 +46,19 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 
             var metadata = new Dictionary<string, object>();
 
-            _provider.ScopeProvider?.ForEachScope((scopeState, _) =>
-            {
-                if (scopeState is IEnumerable<KeyValuePair<string, object>> enumerable)
+            _provider.ScopeProvider?.ForEachScope(
+                (scopeState, _) =>
                 {
-                    foreach (var (key, value) in enumerable)
+                    if (scopeState is IEnumerable<KeyValuePair<string, object>> enumerable)
                     {
-                        metadata[key] = value;
+                        foreach (var (key, value) in enumerable)
+                        {
+                            metadata[key] = value;
+                        }
                     }
-                }
-            }, state);
+                },
+                state
+            );
 
             if (state is IEnumerable<KeyValuePair<string, object>> enumerable)
             {
@@ -72,9 +84,11 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                 metadataValues.Add(value ?? mapping.DefaultValue ?? DBNull.Value);
             }
 
-            var systemId = (int)metadata.GetValueOrDefault("SystemId", 0);
+            var tenant = (string)metadata.GetValueOrDefault("Tenant");
 
-            _provider.AddMessage(new LogMessage(systemId, _name, formatter(state, exception), logLevel, metadataValues));
+            _provider.AddMessage(
+                new LogMessage(tenant, _name, formatter(state, exception), logLevel, metadataValues)
+            );
         }
     }
 }

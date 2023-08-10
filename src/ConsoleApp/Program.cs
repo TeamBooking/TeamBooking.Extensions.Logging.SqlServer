@@ -10,19 +10,25 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             var services = new ServiceCollection()
-                .AddLogging(logging => logging
-                    .AddConsole()
-                    .AddSqlServer(options =>
-                    {
-                        options.GetConnectionString = systemId => "Server=localhost;Database=Tb5;Trusted_Connection=True;MultipleActiveResultSets=True";
-                        options.BatchInterval = TimeSpan.FromMilliseconds(100);
-                        options.TableName = "Hist";
-                        options.LoggerColumnName = "ObjeNavn";
-                        options.MessageColumnName = "LogTeks";
-                        options.LogLevelColumnName = "HistLevel";
-                        options.MetaMappings.Add(new MetaMapping("PostId", null, new[] { "PostId", "PackageId" }));
-                        options.MetaMappings.Add(new MetaMapping("HistFiltId", 0));
-                    }))
+                .AddLogging(
+                    logging =>
+                        logging
+                            .AddConsole()
+                            .AddSqlServer(options =>
+                            {
+                                options.GetConnectionString = tenant =>
+                                    "Server=localhost;Database=Tb5;Trusted_Connection=True;MultipleActiveResultSets=True";
+                                options.BatchInterval = TimeSpan.FromMilliseconds(100);
+                                options.TableName = "Hist";
+                                options.LoggerColumnName = "ObjeNavn";
+                                options.MessageColumnName = "LogTeks";
+                                options.LogLevelColumnName = "HistLevel";
+                                options.MetaMappings.Add(
+                                    new MetaMapping("PostId", null, new[] { "PostId", "PackageId" })
+                                );
+                                options.MetaMappings.Add(new MetaMapping("HistFiltId", 0));
+                            })
+                )
                 .BuildServiceProvider();
 
             var logger = services.GetRequiredService<ILogger<Program>>();
