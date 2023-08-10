@@ -3,16 +3,16 @@ using System.Collections.Generic;
 
 namespace TeamBooking.Extensions.Logging.SqlServer
 {
-    internal readonly struct LogMessage
+    internal readonly record struct LogMessage
     {
-        public string Tenant { get; }
+        public string? Tenant { get; }
         public string Logger { get; }
         public string FormattedMessage { get; }
         public LogLevel LogLevel { get; }
         public List<object> MetadataValues { get; }
 
         public LogMessage(
-            string tenant,
+            string? tenant,
             string logger,
             string formattedMessage,
             LogLevel logLevel,

@@ -21,7 +21,8 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             _options = options;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
         {
             return _provider.ScopeProvider?.Push(state);
         }
@@ -35,8 +36,8 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             LogLevel logLevel,
             EventId eventId,
             TState state,
-            Exception exception,
-            Func<TState, Exception, string> formatter
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
         )
         {
             if (!IsEnabled(logLevel))
@@ -72,7 +73,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 
             foreach (var mapping in _options.MetaMappings)
             {
-                object value = null;
+                object? value = null;
 
                 foreach (var key in mapping.LogTemplateKeys)
                 {
@@ -84,7 +85,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                 metadataValues.Add(value ?? mapping.DefaultValue ?? DBNull.Value);
             }
 
-            var tenant = (string)metadata.GetValueOrDefault("Tenant");
+            var tenant = (string?)metadata.GetValueOrDefault("Tenant");
 
             _provider.AddMessage(
                 new LogMessage(tenant, _name, formatter(state, exception), logLevel, metadataValues)

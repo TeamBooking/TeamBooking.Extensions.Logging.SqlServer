@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -14,14 +15,15 @@ namespace TeamBooking.Extensions.Logging.SqlServer
     [ProviderAlias("SqlServer")]
     public class SqlServerLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<LogMessage>> _messageQueues =
+        private readonly ConcurrentQueue<LogMessage> _defaultQueue = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<LogMessage>> _tenantQueues =
             new();
         private readonly List<LogMessage> _currentBatch = new();
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly IOptions<SqlServerLoggerOptions> _options;
         private readonly Task _outputTask;
 
-        internal IExternalScopeProvider ScopeProvider { get; private set; }
+        internal IExternalScopeProvider? ScopeProvider { get; private set; }
 
         public SqlServerLoggerProvider(IOptions<SqlServerLoggerOptions> options)
         {
@@ -36,10 +38,9 @@ namespace TeamBooking.Extensions.Logging.SqlServer
 
         internal void AddMessage(LogMessage message)
         {
-            var queue = _messageQueues.GetOrAdd(
-                message.Tenant,
-                _ => new ConcurrentQueue<LogMessage>()
-            );
+            var queue = message.Tenant is null
+                ? _defaultQueue
+                : _tenantQueues.GetOrAdd(message.Tenant, _ => new ConcurrentQueue<LogMessage>());
             queue.Enqueue(message);
         }
 
@@ -47,7 +48,18 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         {
             while (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                foreach (var (tenant, queue) in _messageQueues)
+                while (_defaultQueue.TryDequeue(out var message))
+                {
+                    _currentBatch.Add(message);
+                }
+
+                if (_currentBatch.Count > 0)
+                {
+                    await StoreBatchAsync(null, _currentBatch, _cancellationTokenSource.Token);
+                    _currentBatch.Clear();
+                }
+
+                foreach (var (tenant, queue) in _tenantQueues)
                 {
                     while (queue.TryDequeue(out var message))
                     {
@@ -70,7 +82,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
         }
 
         private async Task StoreBatchAsync(
-            string tenant,
+            string? tenant,
             IEnumerable<LogMessage> batch,
             CancellationToken cancellationToken
         )
@@ -82,7 +94,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                 return;
             }
 
-            var connectionString = _options.Value?.GetConnectionString(tenant);
+            var connectionString = _options.Value?.GetConnectionString?.Invoke(tenant);
             if (connectionString is null)
             {
                 return;
@@ -95,7 +107,7 @@ namespace TeamBooking.Extensions.Logging.SqlServer
                 externalTransaction: null
             )
             {
-                DestinationTableName = _options.Value.TableName
+                DestinationTableName = _options.Value?.TableName
             };
 
             foreach (DataColumn column in table.Columns)
