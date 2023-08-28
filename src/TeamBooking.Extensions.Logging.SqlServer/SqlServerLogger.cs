@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace TeamBooking.Extensions.Logging.SqlServer
 {
@@ -86,9 +87,15 @@ namespace TeamBooking.Extensions.Logging.SqlServer
             }
 
             var tenant = (string?)metadata.GetValueOrDefault("Tenant");
+            var message = new StringBuilder(formatter(state, exception));
+
+            if (exception is not null)
+            {
+                message.AppendLine().Append(exception);
+            }
 
             _provider.AddMessage(
-                new LogMessage(tenant, _name, formatter(state, exception), logLevel, metadataValues)
+                new LogMessage(tenant, _name, message.ToString(), logLevel, metadataValues)
             );
         }
     }
